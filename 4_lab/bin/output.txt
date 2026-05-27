@@ -1,0 +1,44 @@
+N = 5
+M = 3
+Start = Анна
+
+Participants:
+Анна
+Борис
+Вера
+Глеб
+Дима
+
+Counting result:
+
+Initial state:
+Анна
+Борис
+Вера
+Глеб
+Дима
+
+Removed: Вера
+Left:
+Глеб
+Дима
+Анна
+Борис
+
+Removed: Анна
+Left:
+Борис
+Глеб
+Дима
+
+Removed: Дима
+Left:
+Борис
+Глеб
+
+Removed: Борис
+Left:
+Глеб
+
+Winner:
+Глеб

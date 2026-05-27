@@ -1,0 +1,21 @@
+FC=flang
+
+FFLAGS=-Wall -std=f2008ts -fimplicit-none -flto
+
+FOPT=-O3 -Rpass=.* -Rpass-analysis=.* -Rpass-missed=.*
+
+all:
+	mkdir -p obj bin
+	$(FC) $(FFLAGS) -c src/environment.f90 -J obj/ -o obj/environment.o
+	$(FC) $(FFLAGS) -c src/lab_io.f90 -J obj/ -o obj/lab_io.o
+	$(FC) $(FFLAGS) $(FOPT) -c src/lab_calculate.f90 -J obj/ -o obj/lab_calculate.o
+	$(FC) $(FFLAGS) $(FOPT) -c src/main.f90 -I obj/ -o obj/main.o
+	$(FC) $(FFLAGS) $(FOPT) -o bin/app obj/environment.o obj/lab_calculate.o obj/lab_io.o obj/main.o
+
+clean:
+	rm -rf obj/*
+	rm -rf bin/*
+
+run:
+	cd ./bin && ./app
+	cat bin/output.txt

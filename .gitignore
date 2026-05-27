@@ -1,0 +1,8 @@
+*.obj
+*.o
+**/bin/app
+*.mod
+SD_Zuev
+opornie
+data_structures
+*.zip
