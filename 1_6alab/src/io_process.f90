@@ -17,105 +17,143 @@ module IO_Process
 
 contains
 
-    recursive subroutine read_node(In, cur, tail)
-        type(Node), pointer, intent(inout) :: cur
-        type(Node), pointer, intent(inout) :: tail
-        integer, intent(in) :: In
-
-        integer :: IO
-
-        read(In, '(a,1x,a)', iostat=IO) cur%Surname, cur%Position
-        nullify(cur%Next)
-
-        if (.not. associated(tail)) then
-            tail => cur
-        else
-            tail%Next => cur
-            tail => cur
-        end if
-
-        call read_node(In, tail%Next, tail)
-    end subroutine read_node
-
     subroutine read_list(file, head)
         character(*), intent(in) :: file
         type(Node), pointer, intent(out) :: head
+
         integer :: In
+        integer :: IO
+
+        character(kind=CH_, len=SURNAME_LEN) :: surname
+        character(kind=CH_, len=POSITION_LEN) :: position
+
         type(Node), pointer :: tail
+        type(Node), pointer :: new_node
 
         nullify(head)
         nullify(tail)
 
-        open(file=file, encoding=E_, newunit=In)
-        call read_node(In, head, tail)
+        open(file=file, encoding=E_, newunit=In, action='read', iostat=IO)
+        call Handle_IO_status(IO, "open input file")
+
+        do
+            read(In, '(a15,1x,a15)', iostat=IO) surname, position
+
+            if (IO == IOSTAT_END) then
+                exit
+            end if
+
+            call Handle_IO_status(IO, "read input record")
+
+            allocate(new_node)
+
+            new_node%Surname = surname
+            new_node%Position = position
+            nullify(new_node%Next)
+
+            if (.not. associated(head)) then
+                head => new_node
+                tail => new_node
+            else
+                tail%Next => new_node
+                tail => new_node
+            end if
+        end do
+
         close(In)
 
     end subroutine read_list
 
-    recursive subroutine read_order_node(In, cur, tail)
-        integer, intent(in) :: In
-        type(PositionNode), pointer, intent(inout) :: cur
-        type(PositionNode), pointer, intent(inout) :: tail
-        character(kind=CH_, len=POSITION_LEN) :: position
-        integer :: IO
-
-        read(In, '(a15)', iostat=IO) position
-        if (IO /= IOSTAT_END) then
-            call Handle_IO_status(IO, "read order")
-
-            allocate(cur)
-
-            cur%Position = position
-            nullify(cur%Next)
-            if (.not. associated(tail)) then
-                tail => cur
-            else
-                tail%Next => cur
-                tail => cur
-            end if
-
-            call read_order_node(In, tail%Next, tail)
-        end if
-    end subroutine read_order_node
 
     subroutine read_order(file, order)
         character(*), intent(in) :: file
         type(PositionNode), pointer, intent(out) :: order
+
         integer :: In
+        integer :: IO
+
+        character(kind=CH_, len=POSITION_LEN) :: position
+
         type(PositionNode), pointer :: tail
+        type(PositionNode), pointer :: new_node
 
         nullify(order)
         nullify(tail)
 
-        open(file=file, encoding=E_, newunit=In)
-        call read_order_node(In, order, tail)
+        open(file=file, encoding=E_, newunit=In, action='read', iostat=IO)
+        call Handle_IO_status(IO, "open order file")
+
+        do
+            read(In, '(a15)', iostat=IO) position
+
+            if (IO == IOSTAT_END) then
+                exit
+            end if
+
+            call Handle_IO_status(IO, "read order record")
+
+            allocate(new_node)
+
+            new_node%Position = position
+            nullify(new_node%Next)
+
+            if (.not. associated(order)) then
+                order => new_node
+                tail => new_node
+            else
+                tail%Next => new_node
+                tail => new_node
+            end if
+        end do
+
         close(In)
+
     end subroutine read_order
 
-    subroutine write_list(file, head, msg, pos)
+
+    subroutine write_list(file, head, pos)
         character(*), intent(in) :: file
-        character(*), intent(in) :: msg
         character(*), intent(in) :: pos
         type(Node), pointer, intent(in) :: head
-        integer :: Out
 
-        open(file=file, encoding=E_, position=pos, newunit=Out)
-        write(Out, '(/a)') msg
-        call write_node(Out, head)
+        integer :: Out
+        integer :: IO
+
+        type(Node), pointer :: cur
+
+        open(file=file, encoding=E_, position=pos, newunit=Out, iostat=IO)
+        call Handle_IO_status(IO, "open output file")
+
+        cur => head
+
+        do while (associated(cur))
+            write(Out, '(a15,1x,a15)', iostat=IO) cur%Surname, cur%Position
+            call Handle_IO_status(IO, "write sorted record")
+
+            cur => cur%Next
+        end do
+
         close(Out)
 
     end subroutine write_list
 
-    recursive subroutine write_node(Out, cur)
-        integer, intent(in) :: Out
-        type(Node), pointer, intent(in) :: cur
 
-        if (associated(cur)) then
-            write(Out, '(a15,1x,a15)') &
-                cur%Surname, &
-                cur%Position
+    subroutine write_elapsed_time(file, elapsed_time)
+        character(*), intent(in) :: file
+        real(8), intent(in) :: elapsed_time
 
-            call write_node(Out, cur%Next)
-        end if
-    end subroutine write_node
+        integer :: Out
+        integer :: IO
+
+        open(file=file, encoding=E_, position='append', newunit=Out, iostat=IO)
+        call Handle_IO_status(IO, "open output file for elapsed time")
+
+        write(Out, '(/a, f12.8, a)', iostat=IO) &
+            "Execution time of sort_list_by_position: ", elapsed_time, " sec."
+        call Handle_IO_status(IO, "write elapsed time")
+
+        close(Out)
+
+    end subroutine write_elapsed_time
+
 end module IO_Process

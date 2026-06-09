@@ -17,20 +17,20 @@ module environment
 
 contains
 
-   pure function Int_plus_string(int, str) result(res)
-      integer, intent(in)                                         :: int
+   pure function Int_plus_string(i, str) result(res)
+      integer, intent(in)                                         :: i
       character(*), intent(in)                                    :: str
-      character(len(str)+Max(Floor(Log10(Real(int, I_*2)))+1, 1)) :: res
+      character(len(str)+Max(Floor(Log10(Real(i, I_*2)))+1, 1)) :: res
 
-      write (res, '(i0, a)') int, str
+      write (res, '(i0, a)') i, str
    end function Int_plus_string
 
-   pure function String_plus_int(str, int) result(res)
+   pure function String_plus_int(str, i) result(res)
       character(*), intent(in)                                    :: str
-      integer, intent(in)                                         :: int
-      character(len(str)+Max(Floor(Log10(Real(int, I_*2)))+1, 1)) :: res
+      integer, intent(in)                                         :: i
+      character(len(str)+Max(Floor(Log10(Real(i, I_*2)))+1, 1)) :: res
 
-      write (res, '(a, i0)') str, int
+      write (res, '(a, i0)') str, i
    end function String_plus_int
 
    ! Обработка статуса ввода/вывода.

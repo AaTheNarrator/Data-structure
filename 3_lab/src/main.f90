@@ -1,20 +1,20 @@
-program lab_3_1
-    use Environment
-    use Config
-    use IO_Process
-    use Process
-    implicit none
+program lab_3_variant_11
+   use Environment
+   use Config
+   use IO_Process
 
-    type(List) :: S
-    character(kind=CH_, len=SURNAME_LEN) :: target_surname
+   implicit none
 
-    call S%Read_List(IN_FILE)
-    call S%Remove_Last_And_Get(target_surname)
+   type(Surname_List) :: Surnames
+   character(kind=CH_, len=SURNAME_LEN) :: Target_Surname
 
-    call S%Write_List(OUT_FILE, "Input (without last)", "rewind")
+   call Surnames%Read(IN_FILE)
 
-    call Process_Delete_Matching(S%head, target_surname)
+   call Surnames%Write(OUT_FILE, 'Input list:', 'rewind')
 
-    call S%Write_List(OUT_FILE, "Output", "append")
-    call S%Finalize_List()
-end program lab_3_1
+   call Surnames%Remove_Last_And_Get(Target_Surname)
+
+   call Surnames%Delete(Target_Surname)
+
+   call Surnames%Write(OUT_FILE, 'Output list:', 'append')
+end program lab_3_variant_11

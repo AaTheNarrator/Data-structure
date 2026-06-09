@@ -33,22 +33,18 @@ contains
     
         allocate(res(n), counts(m), starts(m), ranks(n))
     
-        !$omp parallel do default(none) private(i) shared(n, arr, order, ranks)
+        !!$omp parallel do default(none) private(i) shared(n, arr, order, ranks)
         do i = 1, n
             ranks(i) = rank(arr(i)%Position, order)
         end do
-        !$omp end parallel do
+        !!$omp end parallel do
     
-        !$omp parallel workshare
+        !!$omp parallel workshare
         counts = [(count(ranks == i), i = 1, m)]
-        !$omp end parallel workshare
+        Starts = [(sum(Counts(:i-1)) + 1, i = 1, m)]
+        !!$omp end parallel workshare
     
-        starts(1) = 1
-        do i = 2, m
-            starts(i) = starts(i - 1) + counts(i - 1)
-        end do
-    
-        !$omp parallel do default(none) private(i, j, k) shared(m, n, starts, ranks, arr, res)
+        !!$omp parallel do default(none) private(i, j, k) shared(m, n, starts, ranks, arr, res)
         do i = 1, m
             k = starts(i)
             do j = 1, n
@@ -58,6 +54,6 @@ contains
                 end if
             end do
         end do
-        !$omp end parallel do
+        !!$omp end parallel do
     end subroutine
 end module Process

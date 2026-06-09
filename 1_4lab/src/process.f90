@@ -21,17 +21,13 @@ contains
         allocate(Counts(m), Starts(m), &
             SortedEmployees%Surnames(n), SortedEmployees%Positions(n))
     
-        !$omp parallel workshare
+        !!$omp parallel workshare
         Counts = [(count(Employees%Positions == SortedPosition(i)), i = 1, m)]
-        !$omp end parallel workshare
+        Starts = [(sum(Counts(:i-1)) + 1, i = 1, m)]
+        !!$omp end parallel workshare
     
-        Starts(1) = 1
-        do i = 2, m
-            Starts(i) = Starts(i - 1) + Counts(i - 1)
-        end do
-    
-        !$omp parallel do default(none) private(i, j, k) &
-        !$omp shared(m, n, Starts, Employees, SortedPosition, SortedEmployees)
+        !!$omp parallel do default(none) private(i, j, k) &
+        !!$omp shared(m, n, Starts, Employees, SortedPosition, SortedEmployees)
         do i = 1, m
             k = Starts(i)
             do j = 1, n
@@ -42,7 +38,7 @@ contains
                 end if
             end do
         end do
-        !$omp end parallel do
+        !!$omp end parallel do
     
     end subroutine sort_array_by_position
 

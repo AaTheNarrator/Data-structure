@@ -1,144 +1,220 @@
 module IO_Process
-    use Environment
-    use Config
+   use Environment
+   use Config
 
-    implicit none
+   implicit none
 
-    type :: EmployeeList
-        character(kind=CH_, len=SURNAME_LEN), allocatable :: Surnames(:)
-        character(kind=CH_, len=POSITION_LEN), allocatable :: Positions(:)
-    end type EmployeeList
+   type :: EmployeeList
+      character(kind=CH_, len=SURNAME_LEN),  allocatable :: Surnames(:)
+      character(kind=CH_, len=POSITION_LEN), allocatable :: Positions(:)
+   end type EmployeeList
 
 contains
 
-    function count_of_people(filename) result(n_people)
-        character(*), intent(in) :: filename
-        integer :: n_people
+   function count_of_people(filename) result(n_people)
+      character(*), intent(in) :: filename
 
-        integer :: In, IO
-        character(len=SURNAME_LEN + 1 + POSITION_LEN) :: line
+      integer :: n_people
+      integer :: In
+      integer :: IO
 
-        n_people = 0
+      character(len=SURNAME_LEN + 1 + POSITION_LEN) :: line
 
-        open(file=filename, encoding=E_, newunit=In, action='read')
-        do
-            read(In, '(a)', iostat=IO) line
-            if (IO /= 0) exit
-            n_people = n_people + 1
-        end do
-        close(In)
+      n_people = 0
 
-        if (IO /= IOSTAT_END) then
-            call Handle_IO_status(IO, "counting records in " // filename)
-        end if
-    end function count_of_people
+      open(file=filename, encoding=E_, newunit=In, action='read', iostat=IO)
+      call Handle_IO_status(IO, "open file for counting")
 
-    subroutine read_original_list(Input_File, Employees)
-        character(*), intent(in) :: Input_File
-        type(EmployeeList), intent(out) :: Employees
+      do
+         read(In, '(a)', iostat=IO) line
 
-        integer :: In, IO, n, i
+         if (IO /= 0) then
+            exit
+         end if
 
-        n = count_of_people(Input_File)
-        allocate(Employees%Surnames(n), Employees%Positions(n))
+         n_people = n_people + 1
+      end do
 
-        open(file=Input_File, encoding=E_, newunit=In, action='read')
-            read(In, S_FORMAT, iostat=IO) &
-                (Employees%Surnames(i), Employees%Positions(i), i = 1, n)
-        close(In)
+      close(In)
 
-        call Handle_IO_status(IO, "reading original list")
-    end subroutine read_original_list
+      if (IO /= IOSTAT_END) then
+         call Handle_IO_status(IO, "count records")
+      end if
+
+   end function count_of_people
 
 
-    subroutine create_records_file(Input_File, Bin_File)
-        character(*), intent(in) :: Input_File, Bin_File
+   subroutine read_original_list(Input_File, Employees)
+      character(*), intent(in) :: Input_File
+      type(EmployeeList), intent(out) :: Employees
 
-        type(EmployeeList) :: Employees
-        integer :: Out, IO
+      integer :: In
+      integer :: IO
+      integer :: n
+      integer :: i
 
-        call read_original_list(Input_File, Employees)
+      n = count_of_people(Input_File)
 
-        open(file=Bin_File, newunit=Out, access='stream', form='unformatted', &
-             action='write', status='replace')
-            write(Out, iostat=IO) Employees%Surnames, Employees%Positions
-        close(Out)
+      allocate(Employees%Surnames(n))
+      allocate(Employees%Positions(n))
 
-        call Handle_IO_status(IO, "writing records file")
-    end subroutine create_records_file
+      open(file=Input_File, encoding=E_, newunit=In, action='read', iostat=IO)
+      call Handle_IO_status(IO, "open input file")
 
+      read(In, S_FORMAT, iostat=IO) &
+         (Employees%Surnames(i), Employees%Positions(i), i = 1, n)
 
-    function count_records_in_file(filename) result(n_records)
-        character(*), intent(in) :: filename
-        integer :: n_records
+      close(In)
 
-        integer(kind=int64) :: file_size
-        integer(kind=int64) :: one_record_size
-        integer :: In, IO
-        character(kind=CH_, len=SURNAME_LEN) :: one_surname
-        character(kind=CH_, len=POSITION_LEN) :: one_position
+      call Handle_IO_status(IO, "read original list")
 
-        open(file=filename, newunit=In, access='stream', form='unformatted', action='read')
-            inquire(unit=In, size=file_size, iostat=IO)
-        close(In)
-
-        call Handle_IO_status(IO, "inquiring size of records file")
-
-        one_record_size = int(storage_size(one_surname) / 8, kind=int64) + &
-                          int(storage_size(one_position) / 8, kind=int64)
-
-        n_records = int(file_size / one_record_size, kind=kind(n_records))
-    end function count_records_in_file
+   end subroutine read_original_list
 
 
-    subroutine read_records(filename, Employees)
-        character(*), intent(in) :: filename
-        type(EmployeeList), intent(out) :: Employees
+   subroutine create_records_file(Input_File, Bin_File)
+      character(*), intent(in) :: Input_File
+      character(*), intent(in) :: Bin_File
 
-        integer :: In, IO, n
+      type(EmployeeList) :: Employees
 
-        n = count_records_in_file(filename)
-        allocate(Employees%Surnames(n), Employees%Positions(n))
+      integer :: Out
+      integer :: IO
 
-        open(file=filename, newunit=In, access='stream', form='unformatted', action='read')
-            read(In, iostat=IO) Employees%Surnames, Employees%Positions
-        close(In)
+      call read_original_list(Input_File, Employees)
 
-        call Handle_IO_status(IO, "reading records file")
-    end subroutine read_records
+      open(file=Bin_File, newunit=Out, access='stream', form='unformatted', &
+           action='write', status='replace', iostat=IO)
+      call Handle_IO_status(IO, "open records file for writing")
 
+      write(Out, iostat=IO) Employees%Surnames, Employees%Positions
+      call Handle_IO_status(IO, "write records file")
 
-    subroutine read_order(filename, Sorted_Positions)
-        character(*), intent(in) :: filename
-        character(kind=CH_, len=POSITION_LEN), allocatable, intent(out) :: Sorted_Positions(:)
+      close(Out)
 
-        integer :: In, IO, n, i
-
-        n = count_of_people(filename)
-        allocate(Sorted_Positions(n))
-
-        open(file=filename, encoding=E_, newunit=In, action='read')
-            read(In, '(a15)', iostat=IO) (Sorted_Positions(i), i = 1, n)
-        close(In)
-
-        call Handle_IO_status(IO, "reading order list")
-    end subroutine read_order
+   end subroutine create_records_file
 
 
-    subroutine write_list(Output_File, Employees, Message, Position)
-        character(*), intent(in) :: Output_File, Message, Position
-        type(EmployeeList), intent(in) :: Employees
+   function count_records_in_file(filename) result(n_records)
+      character(*), intent(in) :: filename
 
-        integer :: Out, IO, i
+      integer :: n_records
 
-        open(file=Output_File, encoding=E_, newunit=Out, action='write', position=Position)
-            write(Out, '(/a)', iostat=IO) Message
-            call Handle_IO_status(IO, "writing " // Message)
+      integer(kind=INT64) :: file_size
+      integer(kind=INT64) :: one_record_size
 
-            write(Out, S_FORMAT, iostat=IO) &
-                (Employees%Surnames(i), Employees%Positions(i), i = 1, size(Employees%Surnames))
-        close(Out)
+      integer :: In
+      integer :: IO
 
-        call Handle_IO_status(IO, "writing " // Message)
-    end subroutine write_list
+      character(kind=CH_, len=SURNAME_LEN)  :: one_surname
+      character(kind=CH_, len=POSITION_LEN) :: one_position
+
+      open(file=filename, newunit=In, access='stream', form='unformatted', &
+           action='read', iostat=IO)
+      call Handle_IO_status(IO, "open records file for size inquiry")
+
+      inquire(unit=In, size=file_size, iostat=IO)
+      call Handle_IO_status(IO, "inquire records file size")
+
+      close(In)
+
+      one_record_size = int(storage_size(one_surname) / 8, kind=INT64) + &
+                        int(storage_size(one_position) / 8, kind=INT64)
+
+      n_records = int(file_size / one_record_size, kind=kind(n_records))
+
+   end function count_records_in_file
+
+
+   subroutine read_records(filename, Employees)
+      character(*), intent(in) :: filename
+      type(EmployeeList), intent(out) :: Employees
+
+      integer :: In
+      integer :: IO
+      integer :: n
+
+      n = count_records_in_file(filename)
+
+      allocate(Employees%Surnames(n))
+      allocate(Employees%Positions(n))
+
+      open(file=filename, newunit=In, access='stream', form='unformatted', &
+           action='read', iostat=IO)
+      call Handle_IO_status(IO, "open records file for reading")
+
+      read(In, iostat=IO) Employees%Surnames, Employees%Positions
+      call Handle_IO_status(IO, "read records file")
+
+      close(In)
+
+   end subroutine read_records
+
+
+   subroutine read_order(filename, Sorted_Positions)
+      character(*), intent(in) :: filename
+
+      character(kind=CH_, len=POSITION_LEN), allocatable, intent(out) :: Sorted_Positions(:)
+
+      integer :: In
+      integer :: IO
+      integer :: n
+      integer :: i
+
+      n = count_of_people(filename)
+
+      allocate(Sorted_Positions(n))
+
+      open(file=filename, encoding=E_, newunit=In, action='read', iostat=IO)
+      call Handle_IO_status(IO, "open order file")
+
+      read(In, '(a15)', iostat=IO) (Sorted_Positions(i), i = 1, n)
+      call Handle_IO_status(IO, "read order list")
+
+      close(In)
+
+   end subroutine read_order
+
+
+   subroutine write_list(Output_File, Employees, Position)
+      character(*), intent(in) :: Output_File
+      character(*), intent(in) :: Position
+
+      type(EmployeeList), intent(in) :: Employees
+
+      integer :: Out
+      integer :: IO
+      integer :: i
+
+      open(file=Output_File, encoding=E_, newunit=Out, action='write', &
+           position=Position, iostat=IO)
+      call Handle_IO_status(IO, "open output file")
+
+      write(Out, S_FORMAT, iostat=IO) &
+         (Employees%Surnames(i), Employees%Positions(i), i = 1, size(Employees%Surnames))
+      call Handle_IO_status(IO, "write sorted list")
+
+      close(Out)
+
+   end subroutine write_list
+
+
+   subroutine write_elapsed_time(Output_File, elapsed_time)
+      character(*), intent(in) :: Output_File
+      real(8),      intent(in) :: elapsed_time
+
+      integer :: Out
+      integer :: IO
+
+      open(file=Output_File, encoding=E_, newunit=Out, action='write', &
+           position='append', iostat=IO)
+      call Handle_IO_status(IO, "open output file for elapsed time")
+
+      write(Out, '(/a, f12.8, a)', iostat=IO) &
+         "Execution time of sort_array_by_position: ", elapsed_time, " sec."
+      call Handle_IO_status(IO, "write elapsed time")
+
+      close(Out)
+
+   end subroutine write_elapsed_time
+
 end module IO_Process

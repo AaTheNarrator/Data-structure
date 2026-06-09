@@ -61,11 +61,11 @@ contains
 
         Ranks = [(rank_of_position(Employees%Positions(i), SortedPosition), i = 1, n)]
 
-        !$omp parallel workshare
+        !!$omp parallel workshare
         Counts = [(count(Ranks == i), i = 1, m)]
 
         Starts = [(sum(Counts(:i-1)) + 1, i = 1, m)]
-        !$omp end parallel workshare
+        !!$omp end parallel workshare
         call fill_by_rank(Employees, Ranks, Starts, 1, m, SortedEmployees)
     end subroutine sort_array_by_position
 

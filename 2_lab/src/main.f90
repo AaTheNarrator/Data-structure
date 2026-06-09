@@ -1,21 +1,21 @@
 program lab_2_variant_11
-    use Environment
-    use Config
-    use IO_Process
-    use Process
-    implicit none
-    type(List) :: Text, Commands, Result
-    integer :: Window_Size, Current_Pos
+   use Environment
+   use Config
+   use IO_Process
 
-    call Text%Read_List(TEXT_FILE)
-    call Commands%Read_Commands(CMD_FILE, Window_Size)
-    
-    call Text%Write_List(OUT_FILE, "Input text", "rewind")
-    call Commands%Write_List(OUT_FILE, "Commands", "append")
-    Current_Pos = 1
-    
-    call Save_Window(Get_Nth(Text%Head, Current_Pos), Window_Size, Result)
-    call Process_Scrolling(Text%Head, Commands%Head, Window_Size, Current_Pos, Result)
+   implicit none
 
-    call Result%Write_List(OUT_FILE, "Scrolling result", "append")
-end program
+   type(Data_List)    :: Text
+   type(Command_List) :: Commands
+   type(Data_List)    :: Result
+
+   call Text%Read(TEXT_FILE)
+   call Commands%Read(CMD_FILE)
+
+   call Text%Write(OUT_FILE, 'Input file:', 'rewind')
+   call Commands%Write_Window_Size(OUT_FILE, 'Page size:', 'append')
+
+   call Result%Process_All(Text, Commands)
+
+   call Result%Write(OUT_FILE, 'Scrolling:', 'append')
+end program lab_2_variant_11

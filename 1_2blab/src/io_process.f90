@@ -10,87 +10,137 @@ contains
       character(*), intent(in) :: filename
       integer                  :: n_people
 
-      integer                  :: In, IO
+      integer                   :: In
+      integer                   :: IO
       character(:), allocatable :: line
 
       n_people = 0
+
       allocate(character(len=SURNAME_LEN + 1 + POSITION_LEN) :: line)
 
       open(newunit=In, file=filename, encoding=E_, action='read')
+
+      read(In, '(a)', iostat=IO) line
+
+      do while (IO == 0)
+         n_people = n_people + 1
          read(In, '(a)', iostat=IO) line
-         do while (IO == 0)
-            n_people = n_people + 1
-            read(In, '(a)', iostat=IO) line
-         end do
+      end do
+
       close(In)
 
-      if (IO /= IOSTAT_END) call Handle_IO_status(IO, "counting records in " // filename)
+      if (IO /= IOSTAT_END) then
+         call Handle_IO_status(IO, "counting records in " // filename)
+      end if
+
    end function count_of_people
 
 
    subroutine read_original_list(Input_File, Surnames, Positions)
       character(*), intent(in) :: Input_File
+
       character(kind=CH_), allocatable, intent(out) :: Surnames(:, :)
       character(kind=CH_), allocatable, intent(out) :: Positions(:, :)
 
-      integer                  :: In, IO, People_Amount, i
+      integer                   :: In
+      integer                   :: IO
+      integer                   :: People_Amount
+      integer                   :: i
       character(:), allocatable :: fmt
 
       People_Amount = count_of_people(Input_File)
 
-      !$omp allocators allocate(align(32): Surnames, Positions)
-      allocate(Surnames(SURNAME_LEN, People_Amount), Positions(POSITION_LEN, People_Amount))
-      !$omp end allocators
+      allocate(Surnames(SURNAME_LEN, People_Amount))
+      allocate(Positions(POSITION_LEN, People_Amount))
+
+      Surnames = ' '
+      Positions = ' '
 
       fmt = '(' // SURNAME_LEN // 'a1, 1x, ' // POSITION_LEN // 'a1)'
 
       open(file=Input_File, encoding=E_, newunit=In, action='read')
-         read(In, fmt, iostat=IO) (Surnames(:, i), Positions(:, i), i = 1, People_Amount)
+
+      read(In, fmt, iostat=IO) (Surnames(:, i), Positions(:, i), i = 1, People_Amount)
+
       close(In)
 
       call Handle_IO_status(IO, "reading original list")
+
    end subroutine read_original_list
 
 
    subroutine read_order(filename, Sorted_Positions)
       character(*), intent(in) :: filename
+
       character(kind=CH_), allocatable, intent(out) :: Sorted_Positions(:, :)
 
-      integer                  :: In, IO, n, i
+      integer                   :: In
+      integer                   :: IO
+      integer                   :: n
+      integer                   :: i
       character(:), allocatable :: fmt
 
       n = count_of_people(filename)
 
-      !$omp allocators allocate(align(32): Sorted_Positions)
       allocate(Sorted_Positions(POSITION_LEN, n))
-      !$omp end allocators
+
+      Sorted_Positions = ' '
 
       fmt = '(' // POSITION_LEN // 'a1)'
 
       open(file=filename, encoding=E_, newunit=In, action='read')
-         read(In, fmt, iostat=IO) (Sorted_Positions(:, i), i = 1, n)
+
+      read(In, fmt, iostat=IO) (Sorted_Positions(:, i), i = 1, n)
+
       close(In)
 
       call Handle_IO_status(IO, "reading order list")
+
    end subroutine read_order
 
 
-   subroutine write_original_list(Output_File, Surnames, Positions, Message, position)
-      character(*), intent(in) :: Output_File, Message, position
+   subroutine write_sorted_list(Output_File, Surnames, Positions, position)
+      character(*), intent(in) :: Output_File
+      character(*), intent(in) :: position
+
       character(kind=CH_), intent(in) :: Surnames(:, :)
       character(kind=CH_), intent(in) :: Positions(:, :)
 
-      integer                  :: Out, IO, i
+      integer                   :: Out
+      integer                   :: IO
+      integer                   :: i
       character(:), allocatable :: fmt
 
       fmt = '(' // SURNAME_LEN // 'a1, 1x, ' // POSITION_LEN // 'a1)'
 
       open(file=Output_File, encoding=E_, newunit=Out, position=position)
-         write(Out, '(/a)') Message
-         write(Out, fmt, iostat=IO) (Surnames(:, i), Positions(:, i), i = 1, ubound(Surnames, 2))
+
+      write(Out, fmt, iostat=IO) &
+         (Surnames(:, i), Positions(:, i), i = 1, ubound(Surnames, 2))
+
       close(Out)
 
-      call Handle_IO_status(IO, "writing " // Message)
-   end subroutine write_original_list
+      call Handle_IO_status(IO, "writing sorted list")
+
+   end subroutine write_sorted_list
+
+
+   subroutine write_elapsed_time(Output_File, elapsed_time)
+      character(*), intent(in) :: Output_File
+      real(8),      intent(in) :: elapsed_time
+
+      integer :: Out
+      integer :: IO
+
+      open(file=Output_File, encoding=E_, newunit=Out, position='append')
+
+      write(Out, '(/a, f12.8, a)', iostat=IO) &
+         "Execution time of sort_array_by_position: ", elapsed_time, " sec."
+
+      close(Out)
+
+      call Handle_IO_status(IO, "writing elapsed time")
+
+   end subroutine write_elapsed_time
 
 end module IO_Process

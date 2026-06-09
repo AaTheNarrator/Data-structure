@@ -55,7 +55,7 @@ contains
 
          if (IO == 0) then
             call Start_Ring(This, Name)
-            call Read_Names(In, This, 2_I_, N)
+            call Read_Names(In, This, 2, N)
             This%Tail%Next => This%Head
          end if
       end if
@@ -130,10 +130,10 @@ contains
       class(Counting_Game), intent(inout) :: This
       integer(I_), intent(in)             :: Left
 
-      if (Left > 0_I_ .and. This%Current%Name /= This%Start_Name) then
+      if (Left > 0 .and. This%Current%Name /= This%Start_Name) then
          This%Previous => This%Current
          This%Current  => This%Current%Next
-         call Find_Start(This, Left - 1_I_)
+         call Find_Start(This, Left - 1)
       end if
    end subroutine Find_Start
 
@@ -146,21 +146,16 @@ contains
 
       open (file=File_Name, encoding=E_, position='append', newunit=Out, iostat=IO)
       call Handle_IO_status(IO, 'opening output file')
-      if (IO /= 0) return
 
       write (Out, '(/a)') 'Counting result:'
 
-      if (This%Size <= 0 .or. This%M <= 0 .or. .not. Associated(This%Current)) then
-         write (Out, '(a)') 'Bad input'
-      else
-         write (Out, '(/a)') 'Initial state:'
-         call Write_Ring(Out, This%Current, This%Size)
+      write (Out, '(/a)') 'Initial state:'
+      call Write_Ring(Out, This%Current, This%Size)
 
-         call Write_Counting(Out, This)
+      call Write_Counting(Out, This)
 
-         write (Out, '(/a)') 'Winner:'
-         write (Out, '(a)') Trim(Adjustl(This%Current%Name))
-      end if
+      write (Out, '(/a)') 'Winner:'
+      write (Out, '(a)') Trim(Adjustl(This%Current%Name))
 
       close (Out, iostat=IO)
       call Handle_IO_status(IO, 'closing output file')
@@ -172,7 +167,7 @@ contains
 
       character(kind=CH_, len=NAME_LEN) :: Deleted_Name
 
-      if (This%Size > 1_I_) then
+      if (This%Size > 1) then
          call Move_To_M(This, This%M)
          call Delete_Current(This, Deleted_Name)
 
@@ -188,7 +183,7 @@ contains
       class(Counting_Game), intent(inout) :: This
       integer(I_), intent(in)             :: Left
 
-      if (Left > 1_I_) then
+      if (Left > 1) then
          This%Previous => This%Current
          This%Current  => This%Current%Next
          call Move_To_M(This, Left - 1_I_)
@@ -213,7 +208,7 @@ contains
       nullify (Victim%Next)
       deallocate (Victim)
 
-      This%Size = This%Size - 1_I_
+      This%Size = This%Size - 1
    end subroutine Delete_Current
 
    pure subroutine Start_Ring(This, Name)
@@ -225,7 +220,7 @@ contains
       nullify (This%Head%Next)
 
       This%Tail => This%Head
-      This%Size = 1_I_
+      This%Size = 1
    end subroutine Start_Ring
 
    pure subroutine Append_Ring(This, Name)
@@ -240,7 +235,7 @@ contains
 
       This%Tail%Next => New_Node
       This%Tail => New_Node
-      This%Size = This%Size + 1_I_
+      This%Size = This%Size + 1
    end subroutine Append_Ring
 
    pure subroutine Clear_Game(This)
@@ -254,8 +249,8 @@ contains
       nullify (This%Current)
       nullify (This%Previous)
 
-      This%Size = 0_I_
-      This%M = 0_I_
+      This%Size = 0
+      This%M = 0
       This%Start_Name = EMPTY_CH
    end subroutine Clear_Game
 

@@ -40,21 +40,17 @@ contains
        n = ubound(Positions, 2)
        m = ubound(SortedPosition, 2)
     
-       !$omp allocators allocate(align(32): SortSurnames, SortPosition, Counts, Starts)
        allocate(SortSurnames(SURNAME_LEN, n), SortPosition(POSITION_LEN, n), &
                 Counts(m), Starts(m))
     
-       !$omp parallel workshare
+       !!$omp parallel workshare
        Counts = [(count([(all(Positions(:, j) == SortedPosition(:, i)), j = 1, n)]), i = 1, m)]
-       !$omp end parallel workshare
+       Starts = [(sum(Counts(:i-1)) + 1, i = 1, m)]
+       !!$omp end parallel workshare
     
-       Starts(1) = 1
-       do i = 2, m
-          Starts(i) = Starts(i - 1) + Counts(i - 1)
-       end do
     
-       !$omp parallel do default(none) private(i, j, k) &
-       !$omp shared(m, n, Starts, Positions, Surnames, SortedPosition, SortSurnames, SortPosition)
+       !!$omp parallel do default(none) private(i, j, k) &
+       !!$omp shared(m, n, Starts, Positions, Surnames, SortedPosition, SortSurnames, SortPosition)
        do i = 1, m
           k = Starts(i)
           do j = 1, n
@@ -65,7 +61,7 @@ contains
              end if
           end do
        end do
-       !$omp end parallel do
+       !!$omp end parallel do
     end subroutine sort_array_by_position
 
 end module Process
