@@ -54,7 +54,7 @@ contains
       integer :: unit, iostat
 
       open (newunit=unit, file=file, position=position, encoding=E_)
-         write (unit, '(a,1x,a)', iostat=iostat) 'The original prefix form:', self%str
+         write (unit, '(/a/a)', iostat=iostat) 'The original prefix form:', self%str
          call Handle_IO_status(iostat, 'writing prefix expression')
       close (unit)
    end subroutine Write_source
@@ -74,53 +74,29 @@ contains
       call Parse_prefix(self%str, pos, self%tree_exp%root, self%tree_exp%correct)
       self%tree_exp%correct = self%tree_exp%correct .and. pos > len(self%str)
 
-      if (self%tree_exp%correct .and. allocated(self%tree_exp%root)) then
-         if (Check(self%tree_exp%root)) then
-            self%result = Build_postfix(self%tree_exp%root)
-         else
-            self%tree_exp%correct = .false.
-            self%result = 'Error: the prefix form is incorrect.'
-         end if
+      if (self%tree_exp%correct) then
+         self%result = Build_postfix(self%tree_exp%root)
       else
          self%tree_exp%correct = .false.
          self%result = 'Error: the prefix form is incorrect.'
       end if
 
-   contains
-
-      pure recursive function Check(nd) result(ok)
-         type(Tree_Node), intent(in) :: nd
-         logical :: ok
-
-         if (nd%ch >= 'A' .and. nd%ch <= 'Z') then
-            ok = .not. allocated(nd%left) .and. .not. allocated(nd%right)
-         else if (nd%ch == '+' .or. nd%ch == '-' .or. nd%ch == '*' .or. nd%ch == '/') then
-            ok = allocated(nd%left) .and. allocated(nd%right)
-            if (ok) &
-               ok = Check(nd%left) .and. Check(nd%right)
-         else
-            ok = .false.
-         end if
-      end function Check
-
-
-      pure recursive function Build_postfix(nd) result(res)
-         type(Tree_Node), intent(in) :: nd
-         character(:), allocatable :: res
-
-         character(:), allocatable :: left_part, right_part
-
-         if (allocated(nd%left) .and. allocated(nd%right)) then
-            left_part = Build_postfix(nd%left)
-            right_part = Build_postfix(nd%right)
-            res = left_part // ' ' // right_part // ' ' // nd%ch
-         else
-            res = nd%ch
-         end if
-      end function Build_postfix
-
    end subroutine Convert
 
+    pure recursive function Build_postfix(nd) result(res)
+       type(Tree_Node), intent(in) :: nd
+       character(:), allocatable :: res
+
+       character(:), allocatable :: left_part, right_part
+
+       if (allocated(nd%left) .and. allocated(nd%right)) then
+          left_part = Build_postfix(nd%left)
+          right_part = Build_postfix(nd%right)
+          res = left_part // ' ' // right_part // ' ' // nd%ch
+       else
+          res = nd%ch
+       end if
+   end function Build_postfix
 
    subroutine Write_result(self, file)
       class(Expression), intent(in) :: self
@@ -149,31 +125,27 @@ contains
 
       if (pos > len(s)) then
          ok = .false.
-         return
-      end if
-
-      current = s(pos:pos)
-
-      if (current >= 'A' .and. current <= 'Z') then
-         allocate (nd)
-         nd%ch = current
-         pos = pos + 1
-         ok = .true.
-      else if (current == '+' .or. current == '-' .or. current == '*' .or. current == '/') then
-         allocate (nd)
-         nd%ch = current
+      else 
+         current = s(pos:pos)
          pos = pos + 1
 
-         call Parse_prefix(s, pos, nd%left, ok)
-         if (ok) &
+         if (current >= 'A' .and. current <= 'Z') then
+            allocate (nd)
+            nd%ch = current
+            ok = .true.
+         else if (current == '+' .or. current == '-' .or. current == '*' .or. current == '/') then
+            allocate (nd)
+            nd%ch = current
+
+            call Parse_prefix(s, pos, nd%left, ok)
             call Parse_prefix(s, pos, nd%right, ok)
 
-         if (.not. ok) then
-            if (allocated(nd)) &
-               deallocate (nd)
+            if (.not. ok .and. allocated(nd)) then
+                deallocate (nd)
+            end if
+         else
+            ok = .false.
          end if
-      else
-         ok = .false.
       end if
    end subroutine Parse_prefix
 end module Module_Calculate
